@@ -1,0 +1,28 @@
+# Xcode
+#
+build/
+DerivedData/
+*.hmap
+*.ipa
+*.playground.xcworkspace
+xcuserdata/
+
+# Bundle y Archivos de sistema
+#
+.DS_Store
+*.swp
+*.lock
+
+# Swift Package Manager
+#
+.build/
+.swiftpm
+
+# Apple personal data
+#
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+
+# Archivos de configuración que NO quieres compartir (si tuvieras)
+.env
