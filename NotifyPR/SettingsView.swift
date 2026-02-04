@@ -14,6 +14,9 @@ struct SettingsView: View {
     @AppStorage("refresh_interval") private var refreshInterval = 5.0
     @AppStorage("enable_music_mode") private var enableMusicMode = true
     @AppStorage("auto_update_enabled") private var autoUpdateEnabled = true
+    
+    let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+    let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
 
     var body: some View {
         TabView {
@@ -94,8 +97,17 @@ struct SettingsView: View {
             }
             
             VStack(spacing: 5) {
-                Text("NotifyPR").font(.title2).bold()
-                Text("Versión 1.0").font(.caption).foregroundColor(.secondary)
+                Text("NotifyPR")
+                    .font(.title2)
+                    .bold()
+                
+                // --- TU CÓDIGO DINÁMICO AQUÍ ---
+                let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+                let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+                
+                Text("Versión \(appVersion) (Build \(buildNumber))")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
 
             Divider().frame(width: 200)
