@@ -6,6 +6,7 @@ DerivedData/
 *.ipa
 *.playground.xcworkspace
 xcuserdata/
+*.xcuserstate
 
 # Bundle y Archivos de sistema
 #
