@@ -150,7 +150,7 @@ struct SettingsView: View {
         // 1. Obtenemos la versión actual del proyecto (ej: "1.0")
         guard let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else { return }
         
-        let url = URL(string: "https://api.github.com/repos/sebavidal10/NotifyPR/releases/latest")!
+        let url = URL(string: "https://api.github.com/repos/sebavidal10/notify-pr/releases/latest")!
         
         URLSession.shared.dataTask(with: url) { data, response, error in
             guard let data = data, error == nil else { return }
@@ -174,7 +174,7 @@ struct SettingsView: View {
                             alert.addButton(withTitle: "Más tarde")
                             
                             if alert.runModal() == .alertFirstButtonReturn {
-                                if let url = URL(string: "https://github.com/sebavidal10/NotifyPR/releases") {
+                                if let url = URL(string: "https://github.com/sebavidal10/notify-pr/releases") {
                                     NSWorkspace.shared.open(url)
                                 }
                             }
