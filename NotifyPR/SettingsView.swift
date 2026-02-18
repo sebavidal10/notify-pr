@@ -30,6 +30,20 @@ struct SettingsView: View {
                 .tabItem { Label("Acerca de", systemImage: "info.circle") }
         }
         .frame(width: 450, height: 320)
+        .onAppear {
+            // 1. Activa la app para traerla al frente
+            NSApp.activate(ignoringOtherApps: true)
+            
+            // 2. Busca la ventana que contiene esta vista y elévala
+            // Nota: Esto busca la ventana activa en ese momento
+            DispatchQueue.main.async {
+                if let window = NSApp.windows.first(where: { $0.isVisible }) {
+                    window.level = .floating // Esto la mantiene sobre otras ventanas
+                    window.center()          // Opcional: Centrarla
+                    window.makeKeyAndOrderFront(nil)
+                }
+            }
+        }
     }
 
     // MARK: - Sección General

@@ -26,4 +26,5 @@ struct PullRequest: Codable, Identifiable {
 
 struct GitHubUser: Codable {
     let login: String
+    let avatar_url: String
 }

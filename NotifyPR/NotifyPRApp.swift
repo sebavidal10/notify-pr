@@ -12,62 +12,114 @@ struct NotifyPRApp: App {
     @StateObject private var store = PRStore()
 
     var body: some Scene {
+        // 1. La Barra de Menú (El Popover)
         MenuBarExtra {
-            if store.isLoading {
-                Text("Cargando PRs...")
-            } else if store.prs.isEmpty {
-                Text("Todo al día ☕️")
-            } else {
-                Text("PRs pendientes por revisar:")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                // Listado de PRs
-                ForEach(store.prs) { pr in
-                    Button("\(pr.user.login): \(pr.title)") {
-                        store.openPR(pr.url)
+            VStack(spacing: 0) {
+                // Cabecera
+                HStack {
+                    Text("Pull Requests")
+                        .font(.headline)
+                    Spacer()
+                    if store.isLoading {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Button(action: { Task { await store.fetchPRs() } }) {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
-            }
-
-            Divider()
+                .padding()
                 
-            // En lugar de un Button { SettingsLink... }, usa esto directamente:
-            if #available(macOS 14.0, *) {
-                SettingsLink {
-                    Text("Configuración...")
+                Divider()
+                
+                // Lista
+                if store.prs.isEmpty {
+                    Text("Todo al día ☕️")
+                        .padding()
+                        .foregroundColor(.secondary)
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 10) {
+                            ForEach(store.prs) { pr in
+                                HStack {
+                                    AsyncImage(url: URL(string: pr.user.avatar_url)) { image in
+                                        image.resizable()
+                                    } placeholder: {
+                                        Color.gray
+                                    }
+                                    .frame(width: 24, height: 24)
+                                    .clipShape(Circle())
+                                    
+                                    VStack(alignment: .leading) {
+                                        Text(pr.title)
+                                            .font(.system(size: 12))
+                                            .lineLimit(1)
+                                        Text(pr.user.login)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                }
+                                .padding(.horizontal)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    store.openPR(pr.url)
+                                }
+                            }
+                        }
+                        .padding(.vertical)
+                    }
+                    .frame(maxHeight: 300)
                 }
-            } else {
-                Button("Configuración...") {
-                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                    NSApp.activate(ignoringOtherApps: true)
+                
+                Divider()
+                
+                // Footer
+                HStack {
+                    if #available(macOS 14.0, *) {
+                        SettingsLink { Image(systemName: "gear") }
+                            .buttonStyle(.plain)
+                    } else {
+                        Button(action: {
+                            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                            NSApp.activate(ignoringOtherApps: true)
+                        }) {
+                            Image(systemName: "gear")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
+                    Spacer()
+                    
+                    Button("Salir") {
+                        NSApplication.shared.terminate(nil)
+                    }
+                    .buttonStyle(.plain)
+                    .font(.caption)
                 }
+                .padding()
+                .background(Color.gray.opacity(0.1))
             }
+            .frame(width: 300)
             
-            Divider()
-
-            Button("Actualizar ahora") {
-                Task { await store.fetchPRs() }
-            }
-            
-            Button("Salir") {
-                NSApplication.shared.terminate(nil)
-            }
         } label: {
             HStack(spacing: 4) {
-                if let originalImage = NSImage(named: "gatipulpo") {
-                    let _ = originalImage.isTemplate = true // Esto hace que cambie de color solo
-                    Image("gatipulpo")
-                        .renderingMode(.template)
+               if let originalImage = NSImage(named: "gatipulpo") {
+                    let _ = originalImage.isTemplate = true
+                    Image(nsImage: originalImage).renderingMode(.template)
                 }
                 
-                if store.prs.count > 0 {
-                    Text("\(store.prs.count)")
-                        .font(.system(size: 12, weight: .bold))
+                if store.isLoading {
+                    ProgressView().controlSize(.small).frame(width: 12, height: 12)
+                } else if store.prs.count > 0 {
+                    Text("\(store.prs.count)").font(.system(size: 12, weight: .bold))
                 }
             }
         }
-        
+        .menuBarExtraStyle(.window) // Estilo Popover
+
+        // 2. La Ventana de Configuración (¡ESTO FALTABA!)
         Settings {
             SettingsView()
         }
