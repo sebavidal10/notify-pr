@@ -15,6 +15,7 @@ import ServiceManagement
 class PRStore: ObservableObject {
     @Published var prs: [PullRequest] = []
     @Published var isLoading = false
+    @AppStorage("is_demo_mode") private var isDemoMode = false
     
     private var lastPRCount: Int = 0
     private var timer: Timer?
@@ -85,6 +86,26 @@ class PRStore: ObservableObject {
     
     func fetchPRs() async {
         isLoading = true
+        
+        if isDemoMode {
+            // Datos de demostración para los revisores de Apple
+            let mockUser1 = GitHubUser(login: "apple_reviewer", avatar_url: "https://github.com/apple.png")
+            let mockUser2 = GitHubUser(login: "sebavidal", avatar_url: "https://github.com/sebavidal10.png")
+            
+            let mockPRs = [
+                PullRequest(id: 1, title: "[DEMO] Corregir error de navegación", html_url: "https://github.com", user: mockUser1),
+                PullRequest(id: 2, title: "[DEMO] Implementar modo oscuro", html_url: "https://github.com", user: mockUser2),
+                PullRequest(id: 3, title: "[DEMO] Actualizar documentación de API", html_url: "https://github.com", user: mockUser1)
+            ]
+            
+            try? await Task.sleep(nanoseconds: 500_000_000) // Simular delay
+            
+            self.prs = mockPRs
+            self.lastPRCount = mockPRs.count
+            isLoading = false
+            return
+        }
+        
         // Query: PRs abiertos donde se solicita tu revisión
         let query = "is:open+is:pr+review-requested:\(username)"
         guard let url = URL(string: "https://api.github.com/search/issues?q=\(query)") else { return }

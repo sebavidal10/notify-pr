@@ -13,7 +13,11 @@ struct SettingsView: View {
     @AppStorage("gh_user") private var username = ""
     @AppStorage("refresh_interval") private var refreshInterval = 5.0
     @AppStorage("enable_music_mode") private var enableMusicMode = true
+    @AppStorage("is_demo_mode") private var isDemoMode = false
+    
+    #if !APPSTORE
     @AppStorage("auto_update_enabled") private var autoUpdateEnabled = true
+    #endif
     
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
@@ -50,6 +54,18 @@ struct SettingsView: View {
     private var generalSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             Form {
+                #if !APPSTORE
+                Section(header: Text("Actualizaciones").font(.headline)) {
+                    Toggle("Buscar actualizaciones automáticamente", isOn: $autoUpdateEnabled)
+                        .toggleStyle(.switch)
+                    
+                    Button("Buscar ahora...") {
+                        checkForUpdates()
+                    }
+                    .controlSize(.small)
+                }
+                #endif
+                
                 Section(header: Text("Comportamiento").font(.headline)) {
                     Picker("Refrescar cada:", selection: $refreshInterval) {
                         Text("1 minuto").tag(1.0)
@@ -69,15 +85,6 @@ struct SettingsView: View {
                     Text("Desactiva notificaciones los viernes de 19:00 a 00:00.")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                }
-                Section(header: Text("Actualizaciones").font(.headline)) {
-                    Toggle("Buscar actualizaciones automáticamente", isOn: $autoUpdateEnabled)
-                        .toggleStyle(.switch)
-                    
-                    Button("Buscar ahora...") {
-                        checkForUpdates()
-                    }
-                    .controlSize(.small)
                 }
             }
             .formStyle(.grouped) // Mantiene todo ordenado y alineado a la izquierda
@@ -152,6 +159,14 @@ struct SettingsView: View {
                     TextField("Usuario:", text: $username, prompt: Text("Tu usuario"))
                     SecureField("Token:", text: $token, prompt: Text("ghp_..."))
                 }
+                
+                Section(header: Text("Revisión de Apple").font(.headline)) {
+                    Toggle("Modo Demostración", isOn: $isDemoMode)
+                        .toggleStyle(.switch)
+                    Text("Activa esto para ver datos de prueba si no tienes una cuenta de GitHub configurada.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
             .formStyle(.grouped)
             .textFieldStyle(.roundedBorder)
@@ -160,6 +175,7 @@ struct SettingsView: View {
         }
     }
     
+    #if !APPSTORE
     func checkForUpdates() {
         // 1. Obtenemos la versión actual del proyecto (ej: "1.0")
         guard let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else { return }
@@ -205,4 +221,5 @@ struct SettingsView: View {
             }
         }.resume()
     }
+    #endif
 }
