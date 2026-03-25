@@ -70,7 +70,7 @@ struct NotifyPRApp: App {
                         }
                         .padding(.vertical)
                     }
-                    .frame(maxHeight: 300)
+                    .frame(minHeight: 100, maxHeight: 400) // Corregimos el alto para que no colapse
                 }
                 
                 Divider()
