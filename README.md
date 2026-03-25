@@ -9,7 +9,7 @@
 - **Contador Inteligente:** Visualiza el número de PRs pendientes o un indicador de carga directamente en la barra de menú.
 - **Frecuencia Configurable:** Tú decides cada cuánto tiempo consultar la API de GitHub (1, 5, 15 o 30 min).
 - **🎵 Modo Enfoque:** Silencio automático los viernes de 19:00 a 00:00 ("Viernes de Música") para tus sesiones creativas.
-- **Auto-Update:** Sistema integrado para verificar e instalar nuevas versiones desde GitHub Releases.
+- **Auto-Update:** Sistema de actualizaciones automáticas (vía App Store o integrado para la versión de GitHub).
 
 ## 🛠️ Requisitos y Configuración
 
@@ -19,10 +19,14 @@
 
 ## 🚀 Instalación
 
+**Opción principal (Recomendada):**
+1. Descarga **NotifyPR** directamente desde la App Store.
+2. Abre la app y configura tus credenciales en el engranaje ⚙️.
+
+**Opción alternativa (GitHub):**
 1. Ve a la sección de [Releases](https://github.com/sebavidal10/notify-pr/releases).
-2. Descarga el archivo `NotifyPR.zip`.
+2. Descarga el archivo `NotifyPR.zip` de la última versión.
 3. Arrastra `NotifyPR.app` a tu carpeta de **Aplicaciones**.
-4. Abre la app, haz clic en el engranaje ⚙️ y configura tus credenciales.
 
 ---
 
