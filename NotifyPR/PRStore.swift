@@ -139,8 +139,20 @@ class PRStore: ObservableObject {
     }
     
     func openPR(_ url: URL?) {
-        if let url = url {
+        guard let url = url else { return }
+        
+        let browser = UserDefaults.standard.string(forKey: "default_browser") ?? "default"
+        
+        if browser == "default" {
             NSWorkspace.shared.open(url)
+        } else {
+            if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: browser) {
+                let configuration = NSWorkspace.OpenConfiguration()
+                NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: configuration, completionHandler: nil)
+            } else {
+                // Fallback si el navegador elegido no está instalado
+                NSWorkspace.shared.open(url)
+            }
         }
     }
     
