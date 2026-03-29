@@ -39,6 +39,7 @@ struct NotifyPRApp: App {
                         .padding()
                         .foregroundColor(.secondary)
                 } else {
+                    let calculatedHeight = min(CGFloat(store.prs.count) * 50 + 20, 400)
                     ScrollView {
                         VStack(alignment: .leading, spacing: 10) {
                             ForEach(store.prs) { pr in
@@ -70,7 +71,7 @@ struct NotifyPRApp: App {
                         }
                         .padding(.vertical)
                     }
-                    .frame(minHeight: 100, maxHeight: 400) // Corregimos el alto para que no colapse
+                    .frame(height: calculatedHeight) // Altura dinámica explícita para evitar colapso en Popover
                 }
                 
                 Divider()
