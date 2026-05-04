@@ -1,5 +1,4 @@
 # Xcode
-#
 build/
 DerivedData/
 *.hmap
@@ -7,23 +6,40 @@ DerivedData/
 *.playground.xcworkspace
 xcuserdata/
 *.xcuserstate
+project.xcworkspace/
+*.xccheckout
+*.xcscheme
+*.xcscmblueprint
+*.priors
 
 # Bundle y Archivos de sistema
-#
 .DS_Store
 *.swp
 *.lock
+*.temp
+*.tmp
 
 # Swift Package Manager
-#
 .build/
 .swiftpm
 
-# Apple personal data
-#
-*.mode1v3
-*.mode2v3
-*.perspectivev3
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
 
-# Archivos de configuración que NO quieres compartir (si tuvieras)
+# Local configuration
 .env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# IDEs
+.idea/
+.vscode/
+
+# Other
+node_modules/

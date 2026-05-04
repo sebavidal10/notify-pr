@@ -6,48 +6,64 @@
 //
 
 import Foundation
-import SwiftUI // ObservableObject vive aquí (o en Combine)
+import SwiftUI
 import Combine
 import UserNotifications
 import ServiceManagement
+
+enum TokenStatus {
+    case none
+    case valid
+    case invalid
+    case checking
+    case expired
+}
 
 @MainActor
 class PRStore: ObservableObject {
     @Published var prs: [PullRequest] = []
     @Published var isLoading = false
+    @Published var tokenStatus: TokenStatus = .none
     @AppStorage("is_demo_mode") private var isDemoMode = false
     
     private var lastPRCount: Int = 0
     private var timer: Timer?
     
-    // Leemos directamente de UserDefaults
-    var token: String { UserDefaults.standard.string(forKey: "gh_token") ?? "" }
-    var username: String { UserDefaults.standard.string(forKey: "gh_user") ?? "" }
+    // El token ahora se maneja vía KeychainHelper
+    var token: String {
+        get { KeychainHelper.shared.read() ?? "" }
+        set { 
+            KeychainHelper.shared.save(newValue)
+            Task { await validateToken() }
+        }
+    }
     
-    // Obtenemos la frecuencia guardada (por defecto 5 min si no existe)
+    var username: String {
+        get { UserDefaults.standard.string(forKey: "gh_user") ?? "" }
+        set { 
+            UserDefaults.standard.set(newValue, forKey: "gh_user")
+            Task { await fetchPRs() }
+        }
+    }
+    
     private var refreshInterval: Double {
         let interval = UserDefaults.standard.double(forKey: "refresh_interval")
         return interval > 0 ? interval : 5.0
     }
     
     init() {
-        // 1. Pedir permiso para notificaciones (AppKit maneja esto en segundo plano)
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
             if granted {
                 print("✅ Permiso de notificaciones concedido")
             }
         }
         
-        // 2. Tareas que requieren el hilo principal (MainActor)
-        // Usamos una sola Task para evitar crear múltiples hilos innecesarios
-        Task { @MainActor in
-            // Carga inicial y configuración del timer
+        Task {
+            await validateToken()
             await fetchPRs()
             setupTimer()
         }
         
-        // 3. Observador consolidado
-        // No necesitas dos observadores para la misma notificación
         NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
             object: nil,
@@ -55,22 +71,51 @@ class PRStore: ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor in
                 guard let self = self else { return }
-                await self.fetchPRs() // Refresca datos
-                self.setupTimer()     // Reinicia el timer con la nueva frecuencia
+                // Solo re-fetch si no estamos en medio de una carga
+                if !self.isLoading {
+                    await self.fetchPRs()
+                    self.setupTimer()
+                }
             }
         }
     }
     
     func setupTimer() {
         timer?.invalidate()
-        
         let seconds = refreshInterval * 60.0
-        print("🕒 Timer configurado cada \(refreshInterval) minutos (\(seconds)s)")
-        
         timer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: true) { [weak self] _ in
-            Task {
+            Task { @MainActor in
                 await self?.fetchPRs()
             }
+        }
+    }
+
+    func validateToken() async {
+        guard !token.isEmpty else {
+            tokenStatus = .none
+            return
+        }
+        
+        tokenStatus = .checking
+        
+        guard let url = URL(string: "https://api.github.com/user") else { return }
+        var request = URLRequest(url: url)
+        request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode == 200 {
+                    tokenStatus = .valid
+                } else if httpResponse.statusCode == 401 {
+                    tokenStatus = .invalid
+                } else {
+                    tokenStatus = .none
+                }
+            }
+        } catch {
+            print("❌ Error validando token: \(error)")
+            tokenStatus = .none
         }
     }
 
@@ -85,42 +130,44 @@ class PRStore: ObservableObject {
     }
     
     func fetchPRs() async {
+        guard !isLoading else { return }
         isLoading = true
         
         if isDemoMode {
-            // Datos de demostración para los revisores de Apple
-            let mockUser1 = GitHubUser(login: "apple_reviewer", avatar_url: "https://github.com/apple.png")
-            let mockUser2 = GitHubUser(login: "sebavidal", avatar_url: "https://github.com/sebavidal10.png")
-            
-            let mockPRs = [
-                PullRequest(id: 1, title: "[DEMO] Corregir error de navegación", html_url: "https://github.com", user: mockUser1),
-                PullRequest(id: 2, title: "[DEMO] Implementar modo oscuro", html_url: "https://github.com", user: mockUser2),
-                PullRequest(id: 3, title: "[DEMO] Actualizar documentación de API", html_url: "https://github.com", user: mockUser1)
-            ]
-            
-            try? await Task.sleep(nanoseconds: 500_000_000) // Simular delay
-            
-            self.prs = mockPRs
-            self.lastPRCount = mockPRs.count
+            await simulateFetch()
             isLoading = false
             return
         }
         
-        // Query: PRs abiertos donde se solicita tu revisión
+        guard !token.isEmpty, !username.isEmpty else {
+            isLoading = false
+            return
+        }
+        
         let query = "is:open+is:pr+review-requested:\(username)"
-        guard let url = URL(string: "https://api.github.com/search/issues?q=\(query)") else { return }
+        guard let url = URL(string: "https://api.github.com/search/issues?q=\(query)") else {
+            isLoading = false
+            return
+        }
         
         var request = URLRequest(url: url)
         request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
 
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
-            let response = try JSONDecoder().decode(GitHubSearchResponse.self, from: data)
+            let (data, response) = try await URLSession.shared.data(for: request)
             
-            let newCount = response.total_count
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode == 401 {
+                    tokenStatus = .expired
+                    isLoading = false
+                    return
+                }
+            }
             
-            // SOLO si el número aumentó, mandamos notificación
+            let searchResponse = try JSONDecoder().decode(GitHubSearchResponse.self, from: data)
+            let newCount = searchResponse.total_count
+            
             if newCount > lastPRCount {
                 sendNotification(
                     title: "¡Nuevo PR asignado!",
@@ -128,36 +175,47 @@ class PRStore: ObservableObject {
                 )
             }
             
-            // Actualizamos los estados
-            self.prs = response.items
+            self.prs = searchResponse.items
             self.lastPRCount = newCount
+            tokenStatus = .valid
             
         } catch {
-            print("Error: \(error)")
+            print("❌ Error al obtener PRs: \(error)")
         }
         isLoading = false
     }
     
+    private func simulateFetch() async {
+        let mockUser1 = GitHubUser(login: "apple_reviewer", avatar_url: "https://github.com/apple.png")
+        let mockUser2 = GitHubUser(login: "sebavidal", avatar_url: "https://github.com/sebavidal10.png")
+        
+        let mockPRs = [
+            PullRequest(id: 1, title: "[DEMO] Corregir error de navegación", html_url: "https://github.com", user: mockUser1),
+            PullRequest(id: 2, title: "[DEMO] Implementar modo oscuro", html_url: "https://github.com", user: mockUser2),
+            PullRequest(id: 3, title: "[DEMO] Actualizar documentación de API", html_url: "https://github.com", user: mockUser1)
+        ]
+        
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        self.prs = mockPRs
+        self.lastPRCount = mockPRs.count
+    }
+    
     func openPR(_ url: URL?) {
         guard let url = url else { return }
-        
         let browser = UserDefaults.standard.string(forKey: "default_browser") ?? "default"
         
         if browser == "default" {
             NSWorkspace.shared.open(url)
+        } else if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: browser) {
+            let configuration = NSWorkspace.OpenConfiguration()
+            NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: configuration, completionHandler: nil)
         } else {
-            if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: browser) {
-                let configuration = NSWorkspace.OpenConfiguration()
-                NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: configuration, completionHandler: nil)
-            } else {
-                // Fallback si el navegador elegido no está instalado
-                NSWorkspace.shared.open(url)
-            }
+            NSWorkspace.shared.open(url)
         }
     }
     
     deinit {
         timer?.invalidate()
-        print("Recursos liberados y timer detenido.")
     }
 }
+

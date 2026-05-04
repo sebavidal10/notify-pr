@@ -5,10 +5,14 @@
 ## ✨ Características
 
 - **Vista Popover Moderna:** Una ventana flotante nativa (estilo SwiftUI) que te muestra el detalle de tus tareas.
+- **🔐 Almacenamiento Seguro (Keychain):** Tu token de GitHub se guarda de forma segura en el Keychain de macOS, nunca en texto plano.
+- **⚙️ Gestión de Token Mejorada:** Nuevo flujo de "Editar" y "Guardar" para evitar cambios accidentales y mejorar la seguridad.
+- **✅ Validación de Token:** Indicador visual en tiempo real sobre el estado de tu token (Válido, Inválido o Expirado).
+- **⚠️ Confirmación al Cerrar:** Diálogo de seguridad para evitar cerrar la app accidentalmente y perder notificaciones.
 - **👤 Avatares de Usuarios:** Identifica visualmente al autor del PR gracias a la integración de avatares de GitHub.
 - **Contador Inteligente:** Visualiza el número de PRs pendientes o un indicador de carga directamente en la barra de menú.
+- **✨ Interfaz Optimizada:** Botones de configuración reemplazados por iconos (Guardar, Cancelar, Editar) para una vista más limpia y compacta.
 - **Frecuencia Configurable:** Tú decides cada cuánto tiempo consultar la API de GitHub (1, 5, 15 o 30 min).
-- **🎵 Modo Enfoque:** Silencio automático los viernes de 19:00 a 00:00 ("Viernes de Música") para tus sesiones creativas.
 - **Auto-Update:** Sistema de actualizaciones automáticas (vía App Store o integrado para la versión de GitHub).
 
 ## 🛠️ Requisitos y Configuración

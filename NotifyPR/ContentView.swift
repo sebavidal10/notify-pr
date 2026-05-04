@@ -28,7 +28,7 @@ struct ContentView: View {
                 case .general:
                     GeneralSettingsView()
                 case .github:
-                    GitHubSettingsView()
+                    GitHubSettingsView(store: store)
                 case .about:
                     AboutSettingsView()
                 }
@@ -40,8 +40,18 @@ struct ContentView: View {
             // Custom Bottom Navigation Bar
             bottomNavBar
         }
-        .frame(width: 320, height: 460) // Ajuste de tamaño para el nuevo diseño
+        .frame(width: 320, height: 460)
+        .alert("¿Cerrar NotifyPR?", isPresented: $showingQuitAlert) {
+            Button("Salir", role: .destructive) {
+                NSApplication.shared.terminate(nil)
+            }
+            Button("Cancelar", role: .cancel) {}
+        } message: {
+            Text("Dejarás de recibir notificaciones de Pull Requests.")
+        }
     }
+    
+    @State private var showingQuitAlert = false
     
     private var bottomNavBar: some View {
         HStack(spacing: 12) {
@@ -53,7 +63,7 @@ struct ContentView: View {
             Spacer()
             
             Button(action: {
-                NSApplication.shared.terminate(nil)
+                showingQuitAlert = true
             }) {
                 Image(systemName: "power")
                     .font(.system(size: 14, weight: .bold))

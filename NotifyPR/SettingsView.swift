@@ -110,16 +110,66 @@ struct GeneralSettingsView: View {
 }
 
 struct GitHubSettingsView: View {
-    @AppStorage("gh_token") private var token = ""
+    @ObservedObject var store: PRStore
     @AppStorage("gh_user") private var username = ""
     @AppStorage("is_demo_mode") private var isDemoMode = false
+    @State private var tokenInput: String = ""
+    @State private var isEditingToken: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Form {
                 Section(header: Text("Cuenta de GitHub").font(.headline)) {
                     TextField("Usuario:", text: $username, prompt: Text("Tu usuario"))
-                    SecureField("Token:", text: $token, prompt: Text("ghp_..."))
+                        .onChange(of: username) { _, newValue in
+                            store.username = newValue
+                        }
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            if isEditingToken {
+                                SecureField("Token:", text: $tokenInput, prompt: Text("ghp_..."))
+                                    .textFieldStyle(.roundedBorder)
+                                
+                                Button {
+                                    if !tokenInput.isEmpty {
+                                        store.token = tokenInput
+                                    }
+                                    isEditingToken = false
+                                } label: {
+                                    Image(systemName: "checkmark")
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.small)
+                                .help("Guardar")
+                                
+                                Button {
+                                    tokenInput = store.token
+                                    isEditingToken = false
+                                } label: {
+                                    Image(systemName: "xmark")
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                .help("Cancelar")
+                            } else {
+                                SecureField("Token:", text: .constant(tokenInput.isEmpty ? "" : "••••••••••••••••"), prompt: Text("No configurado"))
+                                    .disabled(true)
+                                    .textFieldStyle(.roundedBorder)
+                                
+                                Button {
+                                    isEditingToken = true
+                                } label: {
+                                    Image(systemName: "pencil")
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                .help("Editar")
+                            }
+                        }
+                        
+                        tokenStatusView
+                    }
                 }
                 
                 Section(header: Text("Revisión de Apple").font(.headline)) {
@@ -131,11 +181,52 @@ struct GitHubSettingsView: View {
                 }
             }
             .formStyle(.grouped)
-            .textFieldStyle(.roundedBorder)
             
             Spacer()
         }
         .padding(.top, 10)
+        .onAppear {
+            tokenInput = store.token
+        }
+    }
+    
+    private var tokenStatusView: some View {
+        HStack {
+            switch store.tokenStatus {
+            case .none:
+                statusLabel(text: "No configurado", color: .secondary, icon: "circle")
+            case .checking:
+                ProgressView()
+                    .controlSize(.small)
+                    .scaleEffect(0.8)
+                Text("Verificando...")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            case .valid:
+                statusLabel(text: "Token válido", color: .green, icon: "checkmark.circle.fill")
+            case .invalid:
+                statusLabel(text: "Token inválido", color: .red, icon: "xmark.circle.fill")
+            case .expired:
+                statusLabel(text: "Token expirado", color: .orange, icon: "exclamationmark.triangle.fill")
+            }
+            
+            Spacer()
+            
+            Button("Verificar ahora") {
+                Task { await store.validateToken() }
+            }
+            .buttonStyle(.link)
+            .font(.caption)
+        }
+    }
+    
+    private func statusLabel(text: String, color: Color, icon: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+            Text(text)
+        }
+        .font(.caption)
+        .foregroundColor(color)
     }
 }
 
