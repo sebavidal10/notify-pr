@@ -90,6 +90,13 @@ class PRStore: ObservableObject {
         }
     }
 
+    func removeToken() {
+        KeychainHelper.shared.delete()
+        tokenStatus = .none
+        prs = []
+        lastPRCount = 0
+    }
+
     func validateToken() async {
         guard !token.isEmpty else {
             tokenStatus = .none
@@ -100,7 +107,7 @@ class PRStore: ObservableObject {
         
         guard let url = URL(string: "https://api.github.com/user") else { return }
         var request = URLRequest(url: url)
-        request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         
         do {
             let (_, response) = try await URLSession.shared.data(for: request)
@@ -151,7 +158,7 @@ class PRStore: ObservableObject {
         }
         
         var request = URLRequest(url: url)
-        request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
 
         do {

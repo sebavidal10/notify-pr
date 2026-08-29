@@ -115,6 +115,7 @@ struct GitHubSettingsView: View {
     @AppStorage("is_demo_mode") private var isDemoMode = false
     @State private var tokenInput: String = ""
     @State private var isEditingToken: Bool = false
+    @State private var showingDeleteAlert: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -188,6 +189,16 @@ struct GitHubSettingsView: View {
         .onAppear {
             tokenInput = store.token
         }
+        .alert("¿Eliminar token de GitHub?", isPresented: $showingDeleteAlert) {
+            Button("Eliminar", role: .destructive) {
+                store.removeToken()
+                tokenInput = ""
+                isEditingToken = false
+            }
+            Button("Cancelar", role: .cancel) {}
+        } message: {
+            Text("El token se eliminará del Keychain de macOS. Dejarás de recibir notificaciones de Pull Requests.")
+        }
     }
     
     private var tokenStatusView: some View {
@@ -212,7 +223,20 @@ struct GitHubSettingsView: View {
             
             Spacer()
             
-            Button("Verificar ahora") {
+            if !tokenInput.isEmpty {
+                Button("Eliminar") {
+                    showingDeleteAlert = true
+                }
+                .buttonStyle(.link)
+                .font(.caption)
+                .foregroundColor(.red)
+                
+                Text("|")
+                    .font(.caption2)
+                    .foregroundColor(.secondary.opacity(0.5))
+            }
+            
+            Button("Verificar") {
                 Task { await store.validateToken() }
             }
             .buttonStyle(.link)

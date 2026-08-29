@@ -11,12 +11,12 @@ fi
 TOKEN=$1
 
 echo "🔍 Verificando token..."
-RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $TOKEN" https://api.github.com/user)
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" https://api.github.com/user)
 
 if [ "$RESPONSE" == "200" ]; then
     echo "✅ El token es VÁLIDO (200 OK)."
     # Obtener el login del usuario
-    USER_LOGIN=$(curl -s -H "Authorization: token $TOKEN" https://api.github.com/user | grep '"login":' | sed -E 's/.*"login": "([^"]+)".*/\1/')
+    USER_LOGIN=$(curl -s -H "Authorization: Bearer $TOKEN" https://api.github.com/user | grep '"login":' | sed -E 's/.*"login": "([^"]+)".*/\1/')
     echo "👤 Usuario: $USER_LOGIN"
 elif [ "$RESPONSE" == "401" ]; then
     echo "❌ El token es INVÁLIDO o ha expirado (401 Unauthorized)."
